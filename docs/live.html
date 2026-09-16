@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BONP — Live Oracle Feed</title>
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #f7f6f3;
+        --bg-raised: #fafaf8;
+        --border: #eaeaea;
+        --text: #111111;
+        --text-muted: #6b6b6b;
+        --accent: #c8553d;
+        --accent-soft: rgba(200, 85, 61, 0.14);
+        --code-bg: #f0efec;
+        --tag-bg: #ebebeb;
+        --settled: #6a8c6d;
+        --forfeited: #c8553d;
+        --ok: #6a8c6d;
+        --err: #c8553d;
+        color-scheme: light;
+      }
+
+      html,
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Satoshi", sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        color-scheme: light;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 28px 40px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .topbar-logo {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .topbar-logo span {
+        color: var(--text);
+      }
+
+      .topbar nav a {
+        font-size: 13px;
+        color: var(--text-muted);
+        text-decoration: none;
+        margin-left: 24px;
+        transition: color 180ms ease;
+      }
+
+      .topbar nav a:hover,
+      .topbar nav a.active {
+        color: var(--text);
+      }
+
+      main {
+        padding: 56px 40px 96px;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      .page-head {
+        padding-bottom: 40px;
+        margin-bottom: 40px;
+        border-bottom: 1px solid var(--border);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 24px;
+        align-items: end;
+      }
+
+      .page-tag {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        background: var(--tag-bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 4px 10px;
+        margin-bottom: 18px;
+      }
+
+      h1 {
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+        margin-bottom: 10px;
+      }
+
+      .page-sub {
+        font-size: 15px;
+        color: var(--text-muted);
+        max-width: 640px;
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--text-muted);
+        font-feature-settings: "tnum";
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--text-muted);
+        transition:
+          background 320ms ease,
+          box-shadow 320ms ease;
+      }
+
+      .status-dot[data-state="connecting"] {
+        background: #b59a4a;
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+
+      .status-dot[data-state="open"] {
+        background: var(--ok);
+        box-shadow: 0 0 0 3px rgba(106, 140, 109, 0.15);
+      }
+
+      .status-dot[data-state="closed"] {
+        background: var(--err);
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 0.4;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
+      .quorum-panel {
+        padding: 32px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--bg-raised);
+        margin-bottom: 36px;
+        position: relative;
+        overflow: hidden;
+        transition:
+          border-color 400ms ease,
+          box-shadow 400ms ease;
+      }
+
+      .quorum-panel.pulse {
+        animation: panel-pulse 700ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      @keyframes panel-pulse {
+        0% {
+          box-shadow: 0 0 0 0 var(--accent-soft);
+          border-color: var(--accent);
+        }
+        100% {
+          box-shadow: 0 0 0 18px rgba(200, 85, 61, 0);
+          border-color: var(--border);
+        }
+      }
+
+      .quorum-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .quorum-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .quorum-value-row {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        margin-bottom: 20px;
+      }
+
+      .quorum-value {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 44px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .quorum-state {
+        font-size: 13px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 6px;
+        background: var(--tag-bg);
+        color: var(--text-muted);
+      }
+
+      .quorum-state[data-state="settled"] {
+        background: rgba(106, 140, 109, 0.15);
+        color: var(--settled);
+      }
+
+      .quorum-state[data-state="forfeited"] {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .band {
+        position: relative;
+        height: 10px;
+        border-radius: 5px;
+        background: var(--border);
+        overflow: hidden;
+      }
+
+      .band-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        background: var(--text);
+        transition: width 560ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .band-tick {
+        position: absolute;
+        top: -4px;
+        bottom: -4px;
+        width: 1px;
+        background: var(--text-muted);
+        opacity: 0.6;
+      }
+
+      .band-tick-label {
+        position: absolute;
+        top: -20px;
+        font-size: 10px;
+        color: var(--text-muted);
+        transform: translateX(-50%);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .sources {
+        display: grid;
+        gap: 14px;
+      }
+
+      .source-row {
+        display: grid;
+        grid-template-columns: 110px 1fr 60px 60px 56px;
+        gap: 16px;
+        align-items: center;
+        padding: 16px 20px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg-raised);
+        transition:
+          border-color 240ms ease,
+          box-shadow 240ms ease;
+      }
+
+      .source-row.fresh {
+        animation: row-fresh 560ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      @keyframes row-fresh {
+        0% {
+          background: var(--tag-bg);
+        }
+        100% {
+          background: var(--bg-raised);
+        }
+      }
+
+      .source-name {
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .source-meta {
+        display: block;
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--text-muted);
+        letter-spacing: 0.04em;
+        margin-top: 2px;
+      }
+
+      .spark {
+        width: 100%;
+        height: 36px;
+      }
+
+      .source-value {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 15px;
+        font-weight: 600;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .source-lat {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--text-muted);
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .source-sig {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        text-align: right;
+      }
+
+      .source-sig[data-sig="ok"] {
+        color: var(--ok);
+      }
+      .source-sig[data-sig="err"] {
+        color: var(--err);
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 28px;
+      }
+
+      .btn {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-raised);
+        color: var(--text);
+        cursor: pointer;
+        transition:
+          background 180ms ease,
+          transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .btn:hover {
+        background: var(--tag-bg);
+      }
+
+      .btn:active {
+        transform: translateY(1px);
+      }
+
+      @media (max-width: 680px) {
+        main {
+          padding: 32px 20px 64px;
+        }
+        .page-head {
+          grid-template-columns: 1fr;
+        }
+        .source-row {
+          grid-template-columns: 80px 1fr 50px;
+          gap: 10px;
+        }
+        .source-lat,
+        .source-sig {
+          display: none;
+        }
+        h1 {
+          font-size: 26px;
+        }
+        .quorum-value {
+          font-size: 34px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-logo">BONP <span>Live</span></div>
+      <nav>
+        <a href="/">Docs</a>
+        <a href="/branch.html">Branch</a>
+        <a href="/live.html" class="active">Live</a>
+        <a href="https://github.com/paramxclaudedev/biometric-oracle-protocol"
+          >GitHub</a
+        >
+      </nav>
+    </header>
+
+    <main>
+      <div class="page-head">
+        <div>
+          <div class="page-tag">Real-time · SSE</div>
+          <h1>Live Oracle Feed</h1>
+          <p class="page-sub">
+            Every source reading streamed as it arrives. Signature verified
+            inline. Running quorum crosses a threshold — the panel pulses once,
+            not forever.
+          </p>
+        </div>
+        <div class="status" aria-live="polite">
+          <span class="status-dot" id="dot" data-state="connecting"></span>
+          <span id="status-text">connecting</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn" id="reconnect">Reconnect</button>
+        <button class="btn" id="pause">Pause</button>
+      </div>
+
+      <div class="quorum-panel" id="quorum-panel">
+        <div class="quorum-head">
+          <span class="quorum-label">Running quorum</span>
+          <span class="quorum-label"
+            >threshold <span id="thr-label">50.0</span></span
+          >
+        </div>
+        <div class="quorum-value-row">
+          <span class="quorum-value" id="q-val">—</span>
+          <span class="quorum-state" id="q-state" data-state="idle">idle</span>
+        </div>
+        <div class="band">
+          <div class="band-fill" id="band-fill" style="width: 0%"></div>
+          <div class="band-tick" id="band-tick" style="left: 50%">
+            <span class="band-tick-label">cross</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sources" id="sources"></div>
+    </main>
+
+    <script type="module">
+      const SOURCES = [
+        { name: "whoop", meta: "recovery_score · v1", weight: 1 },
+        { name: "oura", meta: "readiness · v2", weight: 1 },
+        { name: "apple_health", meta: "healthkit · push", weight: 0.7 },
+      ];
+      const THRESHOLD = 50;
+      const RULE = "gte";
+      const SPARK_N = 60;
+
+      const state = {
+        readings: Object.fromEntries(SOURCES.map((s) => [s.name, []])),
+        meta: Object.fromEntries(
+          SOURCES.map((s) => [s.name, { lat: null, sig: null, conf: 0.9 }]),
+        ),
+        lastCrossed: null,
+        paused: false,
+      };
+
+      let es = null;
+      let retryMs = 800;
+
+      // ---- DOM ----
+      const dot = document.getElementById("dot");
+      const statusText = document.getElementById("status-text");
+      const panel = document.getElementById("quorum-panel");
+      const qVal = document.getElementById("q-val");
+      const qState = document.getElementById("q-state");
+      const bandFill = document.getElementById("band-fill");
+      const thrLabel = document.getElementById("thr-label");
+      const sourcesEl = document.getElementById("sources");
+
+      thrLabel.textContent = THRESHOLD.toFixed(1);
+
+      SOURCES.forEach((s) => {
+        const row = document.createElement("div");
+        row.className = "source-row";
+        row.dataset.source = s.name;
+        row.innerHTML = `
+          <div>
+            <div class="source-name">${s.name}</div>
+            <span class="source-meta">${s.meta}</span>
+          </div>
+          <svg class="spark" viewBox="0 0 200 36" preserveAspectRatio="none">
+            <path class="spark-path" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" />
+          </svg>
+          <div class="source-value">—</div>
+          <div class="source-lat">— ms</div>
+          <div class="source-sig" data-sig="idle">—</div>
+        `;
+        sourcesEl.appendChild(row);
+      });
+
+      function setStatus(s) {
+        dot.dataset.state = s;
+        statusText.textContent = s;
+      }
+
+      function computeQuorum() {
+        const samples = SOURCES.map((s) => {
+          const arr = state.readings[s.name];
+          if (arr.length === 0) return null;
+          const last = arr[arr.length - 1];
+          return { weight: s.weight * state.meta[s.name].conf, value: last };
+        }).filter(Boolean);
+        if (samples.length < 2) return null;
+        const w = samples.reduce((a, x) => a + x.weight, 0);
+        if (w < 1.5) return null;
+        return samples.reduce((a, x) => a + x.value * x.weight, 0) / w;
+      }
+
+      function updateUI(sourceName) {
+        if (sourceName) {
+          const row = sourcesEl.querySelector(`[data-source="${sourceName}"]`);
+          if (!row) return;
+          const arr = state.readings[sourceName];
+          const meta = state.meta[sourceName];
+          const last = arr[arr.length - 1];
+          row.querySelector(".source-value").textContent =
+            last == null ? "—" : last.toFixed(1);
+          row.querySelector(".source-lat").textContent =
+            meta.lat == null ? "— ms" : `${meta.lat} ms`;
+          const sig = row.querySelector(".source-sig");
+          sig.textContent =
+            meta.sig === true ? "ok" : meta.sig === false ? "bad" : "—";
+          sig.dataset.sig =
+            meta.sig === true ? "ok" : meta.sig === false ? "err" : "idle";
+          drawSpark(row.querySelector(".spark-path"), arr);
+          row.classList.remove("fresh");
+          void row.offsetWidth;
+          row.classList.add("fresh");
+        }
+
+        const q = computeQuorum();
+        if (q == null) {
+          qVal.textContent = "—";
+          qState.dataset.state = "idle";
+          qState.textContent = "idle";
+          bandFill.style.width = "0%";
+          return;
+        }
+        qVal.textContent = q.toFixed(2);
+        const crossed = RULE === "gte" ? q >= THRESHOLD : q <= THRESHOLD;
+        const stateKey = crossed ? "settled" : "forfeited";
+        qState.dataset.state = stateKey;
+        qState.textContent = stateKey;
+        bandFill.style.width = `${Math.max(0, Math.min(100, (q / (THRESHOLD * 2)) * 100))}%`;
+
+        if (state.lastCrossed !== crossed) {
+          state.lastCrossed = crossed;
+          panel.classList.remove("pulse");
+          void panel.offsetWidth;
+          panel.classList.add("pulse");
+        }
+      }
+
+      function drawSpark(pathEl, arr) {
+        if (arr.length < 2) {
+          pathEl.setAttribute("d", "");
+          return;
+        }
+        const min = Math.min(...arr);
+        const max = Math.max(...arr);
+        const range = max - min || 1;
+        const n = arr.length;
+        const d = arr
+          .map((v, i) => {
+            const x = (i / (n - 1)) * 200;
+            const y = 34 - ((v - min) / range) * 32;
+            return `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
+          })
+          .join(" ");
+        pathEl.setAttribute("d", d);
+        pathEl.setAttribute("stroke", "var(--text)");
+      }
+
+      function ingest(evt) {
+        if (state.paused) return;
+        try {
+          const data = JSON.parse(evt.data);
+          if (!data.source) return;
+          const arr = state.readings[data.source];
+          if (!arr) return;
+          arr.push(data.value);
+          if (arr.length > SPARK_N) arr.shift();
+          state.meta[data.source] = {
+            lat: data.latency_ms,
+            sig: data.signature_ok,
+            conf: data.confidence ?? state.meta[data.source].conf,
+          };
+          updateUI(data.source);
+        } catch {
+          // malformed packet — ignore
+        }
+      }
+
+      function connect() {
+        setStatus("connecting");
+        try {
+          es = new EventSource("/api/stream/oracle");
+        } catch {
+          scheduleReconnect();
+          return;
+        }
+        es.onopen = () => {
+          setStatus("open");
+          retryMs = 800;
+        };
+        es.onmessage = ingest;
+        es.addEventListener("reading", ingest);
+        es.onerror = () => {
+          setStatus("closed");
+          try {
+            es.close();
+          } catch {}
+          scheduleReconnect();
+        };
+      }
+
+      function scheduleReconnect() {
+        const wait = retryMs;
+        retryMs = Math.min(retryMs * 2, 8000);
+        setTimeout(connect, wait);
+      }
+
+      document.getElementById("reconnect").addEventListener("click", () => {
+        try {
+          es && es.close();
+        } catch {}
+        retryMs = 800;
+        connect();
+      });
+
+      const pauseBtn = document.getElementById("pause");
+      pauseBtn.addEventListener("click", () => {
+        state.paused = !state.paused;
+        pauseBtn.textContent = state.paused ? "Resume" : "Pause";
+      });
+
+      connect();
+    </script>
+  </body>
+</html>

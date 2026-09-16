@@ -1,0 +1,929 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BONP — Quorum Branch Explorer</title>
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #f7f6f3;
+        --bg-raised: #fafaf8;
+        --border: #eaeaea;
+        --text: #111111;
+        --text-muted: #6b6b6b;
+        --accent: #c8553d;
+        --code-bg: #f0efec;
+        --tag-bg: #ebebeb;
+        --settled: #6a8c6d;
+        --forfeited: #c8553d;
+        --inconclusive: #b59a4a;
+        color-scheme: light;
+      }
+
+      html,
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Satoshi", sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        color-scheme: light;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 28px 40px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .topbar-logo {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .topbar-logo span {
+        color: var(--text);
+      }
+
+      .topbar nav a {
+        font-size: 13px;
+        color: var(--text-muted);
+        text-decoration: none;
+        margin-left: 24px;
+        transition: color 180ms ease;
+      }
+
+      .topbar nav a:hover,
+      .topbar nav a.active {
+        color: var(--text);
+      }
+
+      main {
+        padding: 56px 40px 96px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .page-head {
+        padding-bottom: 40px;
+        margin-bottom: 40px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .page-tag {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        background: var(--tag-bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 4px 10px;
+        margin-bottom: 18px;
+      }
+
+      h1 {
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+        margin-bottom: 10px;
+      }
+
+      .page-sub {
+        font-size: 15px;
+        color: var(--text-muted);
+        max-width: 640px;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 32px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-raised);
+        color: var(--text);
+        cursor: pointer;
+        transition:
+          background 180ms ease,
+          border-color 180ms ease,
+          transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .btn:hover {
+        background: var(--tag-bg);
+      }
+
+      .btn:active {
+        transform: translateY(1px);
+      }
+
+      .btn.primary {
+        border-color: #1a1a1a;
+        background: #111111;
+        color: #fafaf8;
+      }
+
+      .btn.primary:hover {
+        background: #2a2a2a;
+      }
+
+      .forks {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 20px;
+      }
+
+      .fork {
+        background: var(--bg-raised);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 28px;
+        position: relative;
+        transition:
+          box-shadow 240ms cubic-bezier(0.16, 1, 0.3, 1),
+          transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
+          border-color 240ms ease;
+        animation: enter 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+
+      @keyframes enter {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .fork:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      }
+
+      .fork.canonical {
+        border-color: #1a1a1a;
+      }
+
+      .fork[data-outcome="settled"]::before {
+        background: var(--settled);
+      }
+      .fork[data-outcome="forfeited"]::before {
+        background: var(--forfeited);
+      }
+      .fork[data-outcome="inconclusive"]::before {
+        background: var(--inconclusive);
+      }
+
+      .fork::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        border-radius: 12px 12px 0 0;
+        background: var(--border);
+        transition: background 320ms ease;
+      }
+
+      .fork-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .fork-name {
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+        background: transparent;
+        border: none;
+        outline: none;
+        width: 100%;
+        padding: 2px 0;
+        border-bottom: 1px solid transparent;
+        transition: border-color 180ms ease;
+      }
+
+      .fork-name:hover,
+      .fork-name:focus {
+        border-bottom-color: var(--border);
+      }
+
+      .fork-actions {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+
+      .fork-actions button {
+        font-family: inherit;
+        font-size: 11px;
+        color: var(--text-muted);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        transition:
+          background 180ms ease,
+          color 180ms ease;
+      }
+
+      .fork-actions button:hover {
+        background: var(--tag-bg);
+        color: var(--text);
+      }
+
+      .outcome-strip {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        margin-bottom: 18px;
+      }
+
+      .outcome-label {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .outcome-value {
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .outcome-value[data-outcome="settled"] {
+        color: var(--settled);
+      }
+      .outcome-value[data-outcome="forfeited"] {
+        color: var(--forfeited);
+      }
+      .outcome-value[data-outcome="inconclusive"] {
+        color: var(--inconclusive);
+      }
+
+      .quorum-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        align-items: baseline;
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .quorum-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .quorum-number {
+        font-family: "JetBrains Mono", "Geist Mono", monospace;
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .source {
+        display: grid;
+        grid-template-columns: 70px 1fr 56px;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 0;
+      }
+
+      .source-name {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-muted);
+      }
+
+      .source-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 2px;
+        background: var(--border);
+        outline: none;
+        border-radius: 1px;
+      }
+
+      .source-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--text);
+        cursor: pointer;
+        border: 2px solid var(--bg-raised);
+        box-shadow: 0 0 0 1px var(--text);
+        transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .source-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+      }
+
+      .source-slider::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--text);
+        cursor: pointer;
+        border: 2px solid var(--bg-raised);
+        box-shadow: 0 0 0 1px var(--text);
+      }
+
+      .source-value {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        font-weight: 600;
+        text-align: right;
+      }
+
+      .source.dropped .source-value {
+        color: var(--text-muted);
+        text-decoration: line-through;
+      }
+
+      .threshold-bar {
+        position: relative;
+        height: 6px;
+        background: var(--border);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 12px;
+      }
+
+      .threshold-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        background: var(--text);
+        transition:
+          width 420ms cubic-bezier(0.16, 1, 0.3, 1),
+          background 420ms ease;
+      }
+
+      .threshold-fill[data-outcome="settled"] {
+        background: var(--settled);
+      }
+      .threshold-fill[data-outcome="forfeited"] {
+        background: var(--forfeited);
+      }
+      .threshold-fill[data-outcome="inconclusive"] {
+        background: var(--inconclusive);
+      }
+
+      .threshold-tick {
+        position: absolute;
+        top: -3px;
+        bottom: -3px;
+        width: 1px;
+        background: var(--text-muted);
+        opacity: 0.5;
+      }
+
+      .base-card {
+        margin-bottom: 32px;
+        padding: 24px 28px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg-raised);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 20px;
+        align-items: center;
+      }
+
+      .base-card h3 {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+      }
+
+      .base-card p {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .base-card strong {
+        color: var(--text);
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      select.select {
+        font-family: inherit;
+        font-size: 13px;
+        padding: 8px 32px 8px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg)
+          url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%236B6B6B' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")
+          no-repeat right 12px center;
+        -webkit-appearance: none;
+        appearance: none;
+        cursor: pointer;
+        color: var(--text);
+      }
+
+      .empty {
+        text-align: center;
+        padding: 80px 24px;
+        color: var(--text-muted);
+        font-size: 13px;
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+      }
+
+      @media (max-width: 680px) {
+        main {
+          padding: 32px 20px 64px;
+        }
+        .base-card {
+          grid-template-columns: 1fr;
+        }
+        h1 {
+          font-size: 26px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-logo">BONP <span>Explorer</span></div>
+      <nav>
+        <a href="/">Docs</a>
+        <a href="/branch.html" class="active">Branch</a>
+        <a href="/live.html">Live</a>
+        <a href="https://github.com/paramxclaudedev/biometric-oracle-protocol"
+          >GitHub</a
+        >
+      </nav>
+    </header>
+
+    <main>
+      <div class="page-head">
+        <div class="page-tag">Non-linear · Counterfactual</div>
+        <h1>Quorum Branch Explorer</h1>
+        <p class="page-sub">
+          Fork a past settlement. Tweak what any source reported, drop it from
+          the quorum, or nudge its confidence. The running outcome recomputes as
+          you think. Stack branches side by side, promote the keeper.
+        </p>
+      </div>
+
+      <div class="base-card">
+        <div>
+          <h3>Base settlement</h3>
+          <p>
+            <strong id="base-id"></strong> · metric
+            <strong id="base-metric"></strong> · threshold
+            <strong id="base-threshold"></strong>
+          </p>
+        </div>
+        <select
+          id="base-select"
+          class="select"
+          aria-label="Base settlement"
+        ></select>
+      </div>
+
+      <div class="toolbar">
+        <button class="btn primary" id="add-fork">New fork</button>
+        <button class="btn" id="export-json">Export JSON</button>
+        <button class="btn" id="clear-forks">Clear all</button>
+      </div>
+
+      <div id="forks" class="forks"></div>
+      <div id="empty" class="empty" hidden>
+        No forks yet. Spin one up — tweak a source and watch the outcome shift.
+      </div>
+    </main>
+
+    <script type="module">
+      // ---- Seed settlements (synthetic but structurally valid) ----
+      const SETTLEMENTS = [
+        {
+          id: "stl_recovery_2026-04-19",
+          metric: "recovery_score",
+          threshold: 50,
+          rule: "gte",
+          sources: [
+            { name: "whoop", value: 31, confidence: 0.95, weight: 1 },
+            { name: "oura", value: 34, confidence: 0.92, weight: 1 },
+            { name: "apple_health", value: 29, confidence: 0.78, weight: 0.7 },
+          ],
+        },
+        {
+          id: "stl_sleep_2026-04-18",
+          metric: "sleep_hours",
+          threshold: 7,
+          rule: "gte",
+          sources: [
+            { name: "whoop", value: 6.8, confidence: 0.94, weight: 1 },
+            { name: "oura", value: 7.2, confidence: 0.96, weight: 1 },
+            { name: "apple_health", value: 6.9, confidence: 0.7, weight: 0.6 },
+          ],
+        },
+        {
+          id: "stl_strain_2026-04-17",
+          metric: "strain",
+          threshold: 14,
+          rule: "gte",
+          sources: [
+            { name: "whoop", value: 15.2, confidence: 0.97, weight: 1 },
+            { name: "oura", value: 13.1, confidence: 0.65, weight: 0.7 },
+            {
+              name: "apple_health",
+              value: 14.8,
+              confidence: 0.82,
+              weight: 0.8,
+            },
+          ],
+        },
+      ];
+
+      const LS_KEY = "bonp.branch.forks.v1";
+      const CANON_KEY = "bonp.branch.canonical.v1";
+
+      // ---- Quorum engine ----
+      // Weighted confidence-aware mean across non-dropped sources.
+      // Quorum valid only if at least 2 sources contribute and total weight >= 1.5.
+      function computeQuorum(sources) {
+        const active = sources.filter((s) => !s.dropped);
+        const totalW = active.reduce((a, s) => a + s.weight * s.confidence, 0);
+        if (active.length < 2 || totalW < 1.5) {
+          return {
+            value: null,
+            totalWeight: totalW,
+            contributors: active.length,
+          };
+        }
+        const weighted = active.reduce(
+          (a, s) => a + s.value * s.weight * s.confidence,
+          0,
+        );
+        return {
+          value: weighted / totalW,
+          totalWeight: totalW,
+          contributors: active.length,
+        };
+      }
+
+      function outcomeFor(quorum, threshold, rule) {
+        if (quorum.value === null) return "inconclusive";
+        const pass =
+          rule === "gte"
+            ? quorum.value >= threshold
+            : quorum.value <= threshold;
+        return pass ? "settled" : "forfeited";
+      }
+
+      // ---- State ----
+      let baseId = SETTLEMENTS[0].id;
+      let forks = loadForks();
+      let canonicalId = loadCanonical();
+
+      function loadForks() {
+        try {
+          return JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+        } catch {
+          return [];
+        }
+      }
+      function saveForks() {
+        localStorage.setItem(LS_KEY, JSON.stringify(forks));
+      }
+      function loadCanonical() {
+        return localStorage.getItem(CANON_KEY) || null;
+      }
+      function saveCanonical() {
+        if (canonicalId) localStorage.setItem(CANON_KEY, canonicalId);
+        else localStorage.removeItem(CANON_KEY);
+      }
+
+      function currentBase() {
+        return SETTLEMENTS.find((s) => s.id === baseId);
+      }
+
+      function newFork() {
+        const base = currentBase();
+        const id = "fork_" + Math.random().toString(36).slice(2, 9);
+        const n = forks.length + 1;
+        forks.push({
+          id,
+          name: `Fork ${n}`,
+          baseId: base.id,
+          sources: base.sources.map((s) => ({ ...s, dropped: false })),
+        });
+        saveForks();
+        render();
+      }
+
+      function updateSource(forkId, sourceIdx, patch) {
+        const f = forks.find((x) => x.id === forkId);
+        if (!f) return;
+        f.sources[sourceIdx] = { ...f.sources[sourceIdx], ...patch };
+        saveForks();
+        renderFork(forkId);
+      }
+
+      function deleteFork(id) {
+        forks = forks.filter((f) => f.id !== id);
+        if (canonicalId === id) {
+          canonicalId = null;
+          saveCanonical();
+        }
+        saveForks();
+        render();
+      }
+
+      function duplicateFork(id) {
+        const src = forks.find((f) => f.id === id);
+        if (!src) return;
+        forks.push({
+          ...structuredClone(src),
+          id: "fork_" + Math.random().toString(36).slice(2, 9),
+          name: src.name + " (copy)",
+        });
+        saveForks();
+        render();
+      }
+
+      function promoteFork(id) {
+        canonicalId = canonicalId === id ? null : id;
+        saveCanonical();
+        render();
+      }
+
+      // ---- Rendering ----
+      const forksEl = document.getElementById("forks");
+      const emptyEl = document.getElementById("empty");
+
+      function renderBase() {
+        const b = currentBase();
+        document.getElementById("base-id").textContent = b.id;
+        document.getElementById("base-metric").textContent = b.metric;
+        document.getElementById("base-threshold").textContent =
+          (b.rule === "gte" ? "≥ " : "≤ ") + b.threshold;
+      }
+
+      function forkCard(f) {
+        const base =
+          SETTLEMENTS.find((s) => s.id === f.baseId) || currentBase();
+        const q = computeQuorum(f.sources);
+        const outcome = outcomeFor(q, base.threshold, base.rule);
+        const qDisplay = q.value === null ? "—" : q.value.toFixed(2);
+        const thresholdPct =
+          q.value === null
+            ? 0
+            : Math.max(
+                0,
+                Math.min(100, (q.value / (base.threshold * 2)) * 100),
+              );
+        const tickPct = 50;
+
+        const isCanonical = f.id === canonicalId;
+        const el = document.createElement("div");
+        el.className = "fork" + (isCanonical ? " canonical" : "");
+        el.dataset.forkId = f.id;
+        el.dataset.outcome = outcome;
+        el.innerHTML = `
+          <div class="fork-head">
+            <input class="fork-name" value="${escapeHtml(f.name)}" aria-label="Fork name" />
+            <div class="fork-actions">
+              <button data-action="promote">${isCanonical ? "unpin" : "promote"}</button>
+              <button data-action="duplicate">copy</button>
+              <button data-action="delete">remove</button>
+            </div>
+          </div>
+          <div class="outcome-strip">
+            <span class="outcome-label">Outcome</span>
+            <span class="outcome-value" data-outcome="${outcome}">${outcomeLabel(outcome)}</span>
+          </div>
+          <div class="quorum-row">
+            <span class="quorum-label">Quorum value</span>
+            <span class="quorum-number">${qDisplay}</span>
+          </div>
+          <div>
+            ${f.sources
+              .map(
+                (s, i) => `
+              <div class="source ${s.dropped ? "dropped" : ""}">
+                <label class="source-name">
+                  <input type="checkbox" data-toggle="${i}" ${s.dropped ? "" : "checked"} style="margin-right: 6px; accent-color: var(--text);" />
+                  ${s.name}
+                </label>
+                <input
+                  type="range"
+                  class="source-slider"
+                  data-slider="${i}"
+                  min="0"
+                  max="${sliderMax(base.metric)}"
+                  step="${sliderStep(base.metric)}"
+                  value="${s.value}"
+                  ${s.dropped ? "disabled" : ""}
+                />
+                <span class="source-value">${Number(s.value).toFixed(sliderStep(base.metric) < 1 ? 1 : 0)}</span>
+              </div>`,
+              )
+              .join("")}
+          </div>
+          <div class="threshold-bar">
+            <div class="threshold-fill" data-outcome="${outcome}" style="width: ${thresholdPct}%"></div>
+            <div class="threshold-tick" style="left: ${tickPct}%"></div>
+          </div>
+        `;
+
+        el.querySelector("[data-action=delete]").addEventListener("click", () =>
+          deleteFork(f.id),
+        );
+        el.querySelector("[data-action=duplicate]").addEventListener(
+          "click",
+          () => duplicateFork(f.id),
+        );
+        el.querySelector("[data-action=promote]").addEventListener(
+          "click",
+          () => promoteFork(f.id),
+        );
+
+        const nameInput = el.querySelector(".fork-name");
+        nameInput.addEventListener("input", (e) => {
+          const target = forks.find((x) => x.id === f.id);
+          if (target) target.name = e.target.value;
+          saveForks();
+        });
+
+        el.querySelectorAll("[data-slider]").forEach((slider) => {
+          slider.addEventListener("input", (e) => {
+            const i = Number(e.target.dataset.slider);
+            updateSource(f.id, i, { value: Number(e.target.value) });
+          });
+        });
+        el.querySelectorAll("[data-toggle]").forEach((cb) => {
+          cb.addEventListener("change", (e) => {
+            const i = Number(e.target.dataset.toggle);
+            updateSource(f.id, i, { dropped: !e.target.checked });
+          });
+        });
+
+        return el;
+      }
+
+      function renderFork(id) {
+        const f = forks.find((x) => x.id === id);
+        if (!f) return;
+        const old = forksEl.querySelector(`[data-fork-id="${id}"]`);
+        if (!old) return render();
+        const fresh = forkCard(f);
+        old.replaceWith(fresh);
+      }
+
+      function render() {
+        renderBase();
+        forksEl.innerHTML = "";
+        if (forks.length === 0) {
+          emptyEl.hidden = false;
+          return;
+        }
+        emptyEl.hidden = true;
+        forks.forEach((f) => forksEl.appendChild(forkCard(f)));
+      }
+
+      function outcomeLabel(o) {
+        return o === "settled"
+          ? "settled"
+          : o === "forfeited"
+            ? "forfeited"
+            : "inconclusive";
+      }
+
+      function sliderMax(metric) {
+        if (metric === "recovery_score") return 100;
+        if (metric === "sleep_hours") return 12;
+        if (metric === "strain") return 21;
+        return 100;
+      }
+      function sliderStep(metric) {
+        return metric === "sleep_hours" || metric === "strain" ? 0.1 : 1;
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      }
+
+      // ---- Wiring ----
+      const baseSelect = document.getElementById("base-select");
+      SETTLEMENTS.forEach((s) => {
+        const opt = document.createElement("option");
+        opt.value = s.id;
+        opt.textContent = s.id;
+        baseSelect.appendChild(opt);
+      });
+      baseSelect.value = baseId;
+      baseSelect.addEventListener("change", (e) => {
+        baseId = e.target.value;
+        render();
+      });
+
+      document.getElementById("add-fork").addEventListener("click", newFork);
+      document.getElementById("clear-forks").addEventListener("click", () => {
+        forks = [];
+        canonicalId = null;
+        saveForks();
+        saveCanonical();
+        render();
+      });
+      document.getElementById("export-json").addEventListener("click", () => {
+        const payload = {
+          exported_at: new Date().toISOString(),
+          base_settlement_id: baseId,
+          canonical_fork_id: canonicalId,
+          forks: forks.map((f) => {
+            const base = SETTLEMENTS.find((s) => s.id === f.baseId);
+            const q = computeQuorum(f.sources);
+            return {
+              ...f,
+              computed: {
+                quorum_value: q.value,
+                total_weight: q.totalWeight,
+                contributors: q.contributors,
+                outcome: outcomeFor(q, base.threshold, base.rule),
+              },
+            };
+          }),
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `bonp-branches-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      render();
+    </script>
+  </body>
+</html>

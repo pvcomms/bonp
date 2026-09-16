@@ -1,0 +1,1 @@
+Signed-envelope protocol for biometric claims. v1.1 fixes a canonicalization defect that made every v1.0 signature universally forgeable.

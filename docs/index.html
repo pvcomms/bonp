@@ -1,0 +1,989 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BONP — Biometric Oracle Network Protocol</title>
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #f7f6f3;
+        --bg-raised: #fafaf8;
+        --border: #eaeaea;
+        --text: #111111;
+        --text-muted: #6b6b6b;
+        --accent: #1a1a1a;
+        --code-bg: #f0efec;
+        --tag-bg: #ebebeb;
+        color-scheme: light;
+      }
+
+      html,
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Satoshi", sans-serif;
+        font-size: 16px;
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+        color-scheme: light;
+      }
+
+      /* Layout */
+      .layout {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        min-height: 100vh;
+      }
+
+      /* Sidebar */
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        border-right: 1px solid var(--border);
+        padding: 40px 24px;
+        background: var(--bg);
+      }
+
+      .sidebar-logo {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 32px;
+      }
+
+      .sidebar-logo span {
+        color: var(--text);
+      }
+
+      .sidebar nav ul {
+        list-style: none;
+      }
+
+      .sidebar nav li {
+        margin-bottom: 4px;
+      }
+
+      .sidebar nav a {
+        display: block;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 14px;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition:
+          background 160ms ease,
+          color 160ms ease;
+      }
+
+      .sidebar nav a:hover,
+      .sidebar nav a.active {
+        background: var(--tag-bg);
+        color: var(--text);
+      }
+
+      .sidebar-section {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        padding: 20px 10px 6px;
+      }
+
+      /* Main */
+      main {
+        padding: 64px 80px;
+        max-width: 860px;
+      }
+
+      /* Hero */
+      .hero {
+        padding-bottom: 56px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 56px;
+      }
+
+      .hero-tag {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        background: var(--tag-bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 4px 10px;
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        font-size: 40px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+        margin-bottom: 16px;
+      }
+
+      .hero-sub {
+        font-size: 18px;
+        color: var(--text-muted);
+        max-width: 560px;
+        line-height: 1.6;
+        margin-bottom: 32px;
+      }
+
+      .badge-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .badge {
+        font-size: 12px;
+        font-weight: 500;
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--bg-raised);
+        color: var(--text-muted);
+      }
+
+      /* Sections */
+      section {
+        margin-bottom: 64px;
+      }
+
+      h2 {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+        margin-bottom: 16px;
+      }
+
+      h3 {
+        font-size: 17px;
+        font-weight: 600;
+        margin-top: 32px;
+        margin-bottom: 10px;
+      }
+
+      p {
+        color: var(--text);
+        margin-bottom: 16px;
+      }
+
+      p.muted {
+        color: var(--text-muted);
+      }
+
+      /* Code */
+      pre {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 24px;
+        overflow-x: auto;
+        margin: 20px 0;
+        font-size: 13.5px;
+        line-height: 1.6;
+      }
+
+      code {
+        font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+        font-size: 13px;
+        background: var(--code-bg);
+        padding: 2px 5px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+      }
+
+      pre code {
+        background: none;
+        padding: 0;
+        border: none;
+        font-size: 13.5px;
+      }
+
+      /* Table */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-size: 14px;
+      }
+
+      th {
+        text-align: left;
+        font-weight: 600;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+        padding: 8px 12px;
+      }
+
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      /* Cards */
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin: 24px 0;
+      }
+
+      .card {
+        background: var(--bg-raised);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 20px;
+        transition: box-shadow 200ms ease;
+      }
+
+      .card:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .card-icon {
+        font-size: 20px;
+        margin-bottom: 10px;
+      }
+
+      .card h4 {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+
+      .card p {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin: 0;
+      }
+
+      /* Diagram */
+      .diagram-wrap {
+        background: var(--bg-raised);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 32px;
+        margin: 24px 0;
+        overflow-x: auto;
+      }
+
+      pre.mermaid {
+        background: none;
+        border: none;
+        border-radius: 0;
+        padding: 0;
+        margin: 0;
+        font-size: inherit;
+        overflow-x: visible;
+      }
+
+      /* Step list */
+      .steps {
+        counter-reset: step;
+        list-style: none;
+        margin: 20px 0;
+      }
+
+      .steps li {
+        counter-increment: step;
+        display: flex;
+        gap: 16px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .steps li:last-child {
+        border-bottom: none;
+      }
+
+      .step-num {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 1.5px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .step-content strong {
+        display: block;
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+
+      .step-content p {
+        font-size: 14px;
+        color: var(--text-muted);
+        margin: 0;
+      }
+
+      /* Error codes */
+      .error-tag {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        font-weight: 600;
+        color: #c0392b;
+        background: #fdf0ee;
+        border: 1px solid #f5c6c0;
+        border-radius: 4px;
+        padding: 2px 6px;
+      }
+
+      /* Divider */
+      hr {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 48px 0;
+      }
+
+      /* Footer */
+      footer {
+        padding: 32px 0;
+        border-top: 1px solid var(--border);
+        margin-top: 64px;
+        font-size: 13px;
+        color: var(--text-muted);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      @media (max-width: 768px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          display: none;
+        }
+        main {
+          padding: 40px 24px;
+        }
+        .card-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-logo">BONP <span>Docs</span></div>
+        <nav>
+          <div class="sidebar-section">Overview</div>
+          <ul>
+            <li><a href="#overview">What is BONP?</a></li>
+            <li><a href="#quickstart">Quick Start</a></li>
+          </ul>
+          <div class="sidebar-section">Protocol</div>
+          <ul>
+            <li><a href="#envelope">BiometricEnvelope</a></li>
+            <li><a href="#lifecycle">Settlement Lifecycle</a></li>
+            <li><a href="#errors">Error Codes</a></li>
+          </ul>
+          <div class="sidebar-section">Adapters</div>
+          <ul>
+            <li><a href="#whoop">Whoop</a></li>
+            <li><a href="#oura">Oura</a></li>
+            <li><a href="#apple-health">Apple Health</a></li>
+          </ul>
+          <div class="sidebar-section">Advanced</div>
+          <ul>
+            <li><a href="#disputes">Dispute Flow</a></li>
+            <li><a href="#staleness">Staleness Proofs</a></li>
+            <li><a href="#security">Security</a></li>
+          </ul>
+          <div class="sidebar-section">Explore</div>
+          <ul>
+            <li><a href="/branch.html">Branch explorer</a></li>
+            <li><a href="/live.html">Live feed</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <main>
+        <div class="hero" id="overview">
+          <div class="hero-tag">BONP-1 · Draft · v1.0.0</div>
+          <h1>Biometric Oracle<br />Network Protocol</h1>
+          <p class="hero-sub">
+            A standard for wrapping biometric device data as cryptographically
+            attested settlement oracles in prediction markets and commitment
+            contracts.
+          </p>
+          <div class="badge-row">
+            <span class="badge">TypeScript SDK</span>
+            <span class="badge">Ed25519 signatures</span>
+            <span class="badge">Whoop · Oura · Apple Health</span>
+            <span class="badge">Replay protection</span>
+            <span class="badge">Dispute resolution</span>
+          </div>
+        </div>
+
+        <section id="why">
+          <h2>Why BONP?</h2>
+          <p>
+            Prediction markets that settle on biometric data all solve the same
+            problem independently: fetch from a device API, prove the data is
+            real, handle disputes. BONP extracts that into a standard. Every
+            adapter speaks the same envelope format. Every verifier runs the
+            same checks.
+          </p>
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-icon">⬡</div>
+              <h4>Standard envelope</h4>
+              <p>
+                One typed format across all providers. Whoop, Oura, and Apple
+                Health all produce the same <code>BiometricEnvelope</code>.
+              </p>
+            </div>
+            <div class="card">
+              <div class="card-icon">⬡</div>
+              <h4>Replay protection</h4>
+              <p>
+                Every envelope carries a 32-byte nonce and a signed fetch
+                timestamp. Stale or replayed data is rejected at verification.
+              </p>
+            </div>
+            <div class="card">
+              <div class="card-icon">⬡</div>
+              <h4>Dispute pathway</h4>
+              <p>
+                Counter-evidence envelopes, heuristic adjudication, and optional
+                on-chain arbitration — baked in from day one.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="quickstart">
+          <h2>Quick Start</h2>
+          <pre><code>pnpm add @bonp/sdk</code></pre>
+          <h3>Settle a market with Whoop recovery</h3>
+          <pre><code>import { WhoopAdapter, AdapterRegistry, verifyEnvelope, generateStalenessProof } from "@bonp/sdk";
+
+const registry = new AdapterRegistry();
+registry.register(new WhoopAdapter());
+
+const adapter = registry.get("whoop")!;
+
+const envelope = await adapter.fetchMetric(
+  userId,
+  "recovery_score",
+  { start: new Date("2026-04-19"), end: new Date("2026-04-20") },
+  { access_token: whoopToken }
+);
+
+const { valid, errors } = await verifyEnvelope(envelope);
+if (!valid) throw new Error(errors.map(e => e.code).join(", "));
+
+const staleness = generateStalenessProof(envelope);
+if (!staleness.is_fresh) throw new Error(`Stale: ${staleness.lag_ms}ms`);
+
+console.log(envelope.claim.value); // e.g. 74 (recovery score)</code></pre>
+        </section>
+
+        <section id="envelope">
+          <h2>BiometricEnvelope</h2>
+          <p>
+            The core BONP data structure. Every adapter produces one; every
+            verifier consumes one.
+          </p>
+          <pre><code>{
+  "version": "BONP-1.0",
+  "claim": {
+    "metric": "recovery_score",
+    "value": 74,
+    "unit": "percent",
+    "timestamp": "2026-04-19T08:32:00.000Z",
+    "window": {
+      "start": "2026-04-19T00:00:00.000Z",
+      "end":   "2026-04-20T00:00:00.000Z"
+    },
+    "device": {
+      "provider": "whoop",
+      "device_id": "a3f9c2...",   // SHA-256 hashed
+      "model": "WHOOP 4.0"
+    },
+    "subject": {
+      "id": "7b2e1d...",           // SHA-256 of user ID
+      "data_hash": "c8f0a4..."    // SHA-256 of raw API response
+    }
+  },
+  "attestation": {
+    "provider_signature": "3a7c...",
+    "provider_public_key": "d9e1...",
+    "adapter_id": "bonp-whoop-v1",
+    "adapter_version": "1.0.0",
+    "fetch_timestamp": "2026-04-19T09:01:14.322Z",
+    "nonce": "8f4a1b2c..."
+  },
+  "settlement": {
+    "staleness_window_ms": 43200000,
+    "confidence_score": 0.95,
+    "dispute_window_ms": 86400000
+  }
+}</code></pre>
+        </section>
+
+        <section id="lifecycle">
+          <h2>Settlement Lifecycle</h2>
+          <div class="diagram-wrap">
+            <pre class="mermaid">
+sequenceDiagram
+  participant M as Market Contract
+  participant O as Oracle (Adapter)
+  participant P as Device Provider API
+  participant V as Verifier
+  M->>O: fetchMetric(userId, metric, range)
+  O->>P: GET /recovery?start=&end=
+  P-->>O: { records: [...] }
+  O->>O: sign(canonicalize(claim), adapter_key)
+  O-->>M: BiometricEnvelope
+  M->>V: verifyEnvelope(envelope)
+  V->>V: check version + fields
+  V->>V: check nonce registry
+  V->>V: check staleness_window_ms
+  V->>V: check confidence_score >= 0.5
+  V-->>M: { valid: true, errors: [] }
+  M->>M: generateStalenessProof(envelope)
+  Note over M: dispute_window_ms begins
+  alt No dispute
+    M->>M: Settlement final
+  else Dispute opened
+    M->>V: openDispute + submitEvidence
+    V->>V: adjudicate(dispute, original)
+    V-->>M: DisputeRecord resolved
+  end
+            </pre>
+          </div>
+
+          <ol class="steps">
+            <li>
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <strong>Fetch</strong>
+                <p>
+                  Oracle calls <code>adapter.fetchMetric()</code>. The adapter
+                  hits the provider API, wraps the response in a signed
+                  <code>BiometricEnvelope</code>.
+                </p>
+              </div>
+            </li>
+            <li>
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <strong>Verify</strong>
+                <p>
+                  Settlement engine calls <code>verifyEnvelope()</code>. Checks
+                  version, nonce, staleness, confidence floor, and signature.
+                </p>
+              </div>
+            </li>
+            <li>
+              <div class="step-num">3</div>
+              <div class="step-content">
+                <strong>Challenge period</strong>
+                <p>
+                  <code>dispute_window_ms</code> elapses. During this window,
+                  any party can open a dispute with counter-evidence.
+                </p>
+              </div>
+            </li>
+            <li>
+              <div class="step-num">4</div>
+              <div class="step-content">
+                <strong>Resolve</strong>
+                <p>
+                  No dispute → settlement final. Disputed → heuristic
+                  adjudication or human arbiter resolves.
+                </p>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <section id="errors">
+          <h2>Error Codes</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Meaning</th>
+                <th>Recovery</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="error-tag">BONP-001</span></td>
+                <td>Invalid envelope format</td>
+                <td>Fix malformed fields</td>
+              </tr>
+              <tr>
+                <td><span class="error-tag">BONP-002</span></td>
+                <td>Signature verification failed</td>
+                <td>Re-fetch with valid adapter keypair</td>
+              </tr>
+              <tr>
+                <td><span class="error-tag">BONP-003</span></td>
+                <td>Stale data outside window</td>
+                <td>Re-fetch with current timestamp</td>
+              </tr>
+              <tr>
+                <td><span class="error-tag">BONP-004</span></td>
+                <td>Replay detected — nonce reuse</td>
+                <td>Generate new nonce per envelope</td>
+              </tr>
+              <tr>
+                <td><span class="error-tag">BONP-005</span></td>
+                <td>Provider authentication failed</td>
+                <td>Refresh OAuth token</td>
+              </tr>
+              <tr>
+                <td><span class="error-tag">BONP-006</span></td>
+                <td>Metric not supported by adapter</td>
+                <td>Check <code>getCapabilities().metrics</code></td>
+              </tr>
+              <tr>
+                <td><span class="error-tag">BONP-007</span></td>
+                <td>Dispute window expired</td>
+                <td>No remedy; settlement is final</td>
+              </tr>
+              <tr>
+                <td><span class="error-tag">BONP-008</span></td>
+                <td>Confidence score too low</td>
+                <td>Use higher-confidence adapter</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="whoop">
+          <h2>Whoop Adapter</h2>
+          <p>
+            Hits the Whoop Developer API v1. Requires a Bearer access token from
+            Whoop OAuth.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Endpoint</th>
+                <th>Field</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>recovery_score</code></td>
+                <td><code>GET /v1/recovery</code></td>
+                <td><code>score.recovery_score</code></td>
+              </tr>
+              <tr>
+                <td><code>hrv_rmssd</code></td>
+                <td><code>GET /v1/recovery</code></td>
+                <td><code>score.hrv_rmssd_milli</code></td>
+              </tr>
+              <tr>
+                <td><code>resting_heart_rate</code></td>
+                <td><code>GET /v1/recovery</code></td>
+                <td><code>score.resting_heart_rate</code></td>
+              </tr>
+              <tr>
+                <td><code>spo2</code></td>
+                <td><code>GET /v1/recovery</code></td>
+                <td><code>score.spo2_percentage</code></td>
+              </tr>
+              <tr>
+                <td><code>sleep_performance</code></td>
+                <td><code>GET /v1/sleep</code></td>
+                <td><code>score.sleep_performance_percentage</code></td>
+              </tr>
+              <tr>
+                <td><code>sleep_hours</code></td>
+                <td><code>GET /v1/sleep</code></td>
+                <td><code>score.total_in_bed_time_milli ÷ 3.6M</code></td>
+              </tr>
+              <tr>
+                <td><code>strain</code></td>
+                <td><code>GET /v1/cycle</code></td>
+                <td><code>score.strain</code></td>
+              </tr>
+              <tr>
+                <td><code>active_calories</code></td>
+                <td><code>GET /v1/cycle</code></td>
+                <td><code>score.kilojoule × 0.239</code></td>
+              </tr>
+            </tbody>
+          </table>
+          <pre><code>import { WhoopAdapter } from "@bonp/sdk";
+
+const adapter = new WhoopAdapter();
+const envelope = await adapter.fetchMetric(
+  userId, "recovery_score",
+  { start: new Date(), end: new Date(Date.now() + 86400000) },
+  { access_token: "whoop_oauth_token" }
+);</code></pre>
+        </section>
+
+        <section id="oura">
+          <h2>Oura Adapter</h2>
+          <p>
+            Hits the Oura Ring API v2. Requires a Personal Access Token or OAuth
+            Bearer token.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Endpoint</th>
+                <th>Field</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>readiness_score</code></td>
+                <td><code>GET /v2/usercollection/daily_readiness</code></td>
+                <td><code>data[0].score</code></td>
+              </tr>
+              <tr>
+                <td><code>sleep_hours</code></td>
+                <td><code>GET /v2/usercollection/sleep</code></td>
+                <td><code>total_sleep_duration ÷ 3600</code></td>
+              </tr>
+              <tr>
+                <td><code>sleep_performance</code></td>
+                <td><code>GET /v2/usercollection/sleep</code></td>
+                <td><code>efficiency</code></td>
+              </tr>
+              <tr>
+                <td><code>step_count</code></td>
+                <td><code>GET /v2/usercollection/daily_activity</code></td>
+                <td><code>data[0].steps</code></td>
+              </tr>
+              <tr>
+                <td><code>active_calories</code></td>
+                <td><code>GET /v2/usercollection/daily_activity</code></td>
+                <td><code>data[0].active_calories</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="apple-health">
+          <h2>Apple Health Adapter</h2>
+          <p>
+            Bridge adapter for HealthKit export XML or iOS push data. No live
+            API — works offline.
+          </p>
+          <pre><code>import { AppleHealthAdapter } from "@bonp/sdk";
+
+const adapter = new AppleHealthAdapter();
+adapter.loadExport("/path/to/export.xml");
+
+const envelope = await adapter.fetchMetric(
+  userId, "step_count",
+  { start: new Date("2026-04-19"), end: new Date("2026-04-20") }
+);</code></pre>
+          <p class="muted">
+            To use with a live iOS push: pass the parsed
+            <code>HealthKitReading[]</code> array directly to
+            <code>loadExport()</code>.
+          </p>
+        </section>
+
+        <section id="disputes">
+          <h2>Dispute Flow</h2>
+          <div class="diagram-wrap">
+            <pre class="mermaid">
+flowchart TD
+  A[Settlement submitted] --> B{Within dispute window?}
+  B -- No --> C[Settlement final]
+  B -- Yes --> D[openDispute]
+  D --> E[submitEvidence with counter-envelopes]
+  E --> F{adjudicate}
+  F -- No evidence --> G[resolved_for_claimant]
+  F -- Different provider --> H[open · needs manual review]
+  F -- Same provider, higher confidence --> I[resolved_for_challenger]
+  F -- Same provider, lower confidence --> G
+  H --> J[resolveDispute manual]
+            </pre>
+          </div>
+          <pre><code>import { openDispute, submitEvidence, adjudicate, resolveDispute } from "@bonp/sdk";
+
+const dispute = openDispute(originalEnvelope, "challenger-user-id");
+const withEvidence = submitEvidence(dispute, [counterEnvelope]);
+
+const result = adjudicate(withEvidence, originalEnvelope);
+// "resolved_for_claimant" | "resolved_for_challenger" | "open"
+
+const resolved = resolveDispute(withEvidence, result, "reason text");</code></pre>
+        </section>
+
+        <section id="staleness">
+          <h2>Staleness Proofs</h2>
+          <p>
+            A <code>StalenessProof</code> documents why a specific envelope is
+            fresh or stale. It is serializable — store it alongside the
+            settlement for audit purposes.
+          </p>
+          <pre><code>import { generateStalenessProof, checkFreshness, freshestValidEnvelope } from "@bonp/sdk";
+
+const proof = generateStalenessProof(envelope);
+// {
+//   envelope_id: "c8f0...",
+//   claimed_timestamp: "2026-04-19T08:32:00Z",
+//   fetch_timestamp:   "2026-04-19T09:01:14Z",
+//   max_age_ms: 43200000,
+//   is_fresh: true,
+//   lag_ms: 1754000
+// }
+
+// When you have multiple envelopes, pick the freshest valid one:
+const best = freshestValidEnvelope([env1, env2, env3]);</code></pre>
+        </section>
+
+        <section id="security">
+          <h2>Security Considerations</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Concern</th>
+                <th>Mitigation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Adapter key compromise</td>
+                <td>
+                  Store adapter keys in HSM/KMS. Rotate quarterly. Per-adapter
+                  key isolation means one compromise doesn't affect other
+                  providers.
+                </td>
+              </tr>
+              <tr>
+                <td>OAuth token exposure</td>
+                <td>
+                  Tokens must not be logged or persisted. Adapters hold tokens
+                  only for the duration of the fetch call.
+                </td>
+              </tr>
+              <tr>
+                <td>Replay attacks</td>
+                <td>
+                  32-byte nonce per envelope, tracked in a registry with TTL ≥
+                  dispute_window_ms. Use Redis in production.
+                </td>
+              </tr>
+              <tr>
+                <td>Oracle collusion</td>
+                <td>
+                  Use multiple independent oracle operators for high-value
+                  markets. <code>data_hash</code> enables anyone with the raw
+                  API response to verify the claim.
+                </td>
+              </tr>
+              <tr>
+                <td>Subject re-identification</td>
+                <td>
+                  Add a per-market salt:
+                  <code>SHA-256(userId + marketId + staticSalt)</code> for
+                  <code>subject.id</code>.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <footer>
+          <span>BONP-1 · MIT License · 2026 Param Vaswani</span>
+          <a
+            href="https://github.com/paramxclaudedev/biometric-oracle-protocol"
+            style="
+              color: var(--text-muted);
+              text-decoration: none;
+              font-size: 13px;
+            "
+            >GitHub →</a
+          >
+        </footer>
+      </main>
+    </div>
+
+    <script>
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "neutral",
+        themeVariables: {
+          background: "#F7F6F3",
+          primaryColor: "#EAEAEA",
+          primaryTextColor: "#111111",
+          primaryBorderColor: "#EAEAEA",
+          lineColor: "#6B6B6B",
+          secondaryColor: "#FAFAF8",
+          tertiaryColor: "#F0EFEc",
+          fontSize: "13px",
+          fontFamily: "'Satoshi', sans-serif",
+        },
+      });
+
+      // Active nav highlighting
+      const sections = document.querySelectorAll("section[id], div[id]");
+      const navLinks = document.querySelectorAll(".sidebar nav a");
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              navLinks.forEach((link) => link.classList.remove("active"));
+              const active = document.querySelector(
+                `.sidebar nav a[href="#${entry.target.id}"]`,
+              );
+              if (active) active.classList.add("active");
+            }
+          });
+        },
+        { threshold: 0.4 },
+      );
+
+      sections.forEach((s) => observer.observe(s));
+    </script>
+  </body>
+</html>

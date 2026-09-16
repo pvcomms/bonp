@@ -1,0 +1,30 @@
+{
+  "name": "@bonp/sdk",
+  "version": "1.1.0",
+  "description": "Biometric Oracle Network Protocol \u2014 SDK and reference adapters",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./adapters/whoop": "./dist/adapters/whoop.js",
+    "./adapters/oura": "./dist/adapters/oura.js",
+    "./adapters/apple-health": "./dist/adapters/apple-health.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@noble/ed25519": "^2.1.0",
+    "@noble/hashes": "^1.4.0",
+    "@noble/curves": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.1.0"
+  }
+}
